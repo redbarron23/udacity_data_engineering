@@ -9,17 +9,20 @@ import datetime
 
 def process_song_file(cur, filepath):
     # open song file
-    df = pd.read_json(filepath, lines=True)
+    # df = pd.read_json(filepath, lines=True)
+    df = pd.read_json(filepath, typ='series')
 
     # insert song record
-    song_data = df[['song_id', 'title','artist_id', 'year', 'duration']].values[0].tolist()
-    song_data = (song_data[0], song_data[1], song_data[2], song_data[3], song_data[4])
+    #song_data = df[['song_id', 'title','artist_id', 'year', 'duration']].values[0].tolist()
+    #song_data = (song_data[0], song_data[1], song_data[2], song_data[3], song_data[4])
+    song_data = list(df.loc[["song_id", "title", "artist_id", "year", "duration"]].values)
     cur.execute(song_table_insert, song_data)
     
     # insert artist record
-    artist_data = df[['artist_id', 'artist_name', 'artist_location', 'artist_latitude', 'artist_longitude']].values[0].tolist()
-    artist_data = (artist_data[0], artist_data[1], artist_data[2], artist_data[3], artist_data[4])
-
+    #artist_data = df[['artist_id', 'artist_name', 'artist_location', 'artist_latitude', 'artist_longitude']].values[0].tolist()
+    #artist_data = (artist_data[0], artist_data[1], artist_data[2], artist_data[3], artist_data[4])
+    artist_data = list(df.loc[["artist_id", "artist_name", "artist_location", 
+                               "artist_latitude", "artist_longitude"]].values)
     cur.execute(artist_table_insert, artist_data)
 
 
@@ -27,23 +30,24 @@ def process_log_file(cur, filepath):
     # open log file
     df = pd.read_json(filepath, lines=True)
 
-
     # filter by NextSong action
-    df =  df[df['page']=="NextSong"].reset_index()
-
+    # df =  df[df['page']=="NextSong"].reset_index()
+    df =  df[df['page']=="NextSong"]
 
     # convert timestamp column to datetime
     t = pd.to_datetime(df.ts, unit='ms')
-    df['week'] = t.apply(lambda x: datetime.date(x.year, x.month, x.day).isocalendar()[1])
-    df['week_day'] = t.apply(lambda x: datetime.date(x.year, x.month, x.day).strftime("%A"))
+    #df['week'] = t.apply(lambda x: datetime.date(x.year, x.month, x.day).isocalendar()[1])
+    #df['week_day'] = t.apply(lambda x: datetime.date(x.year, x.month, x.day).strftime("%A"))
 
     
     # insert time data records
-    time_data = (t, t.dt.hour, t.dt.day, df.week, t.dt.month, t.dt.year, df.week_day)
-    column_labels = ['start_time','hour','day','week','month', 'year','weekday']
+    # time_data = (t, t.dt.hour, t.dt.day, df.week, t.dt.month, t.dt.year, df.weekday)
+    time_data = (t, t.dt.hour, t.dt.day, t.dt.week, t.dt.month, t.dt.year, t.dt.weekday)
+    # column_labels = ['start_time','hour','day','week','month', 'year', 'weekday']
+    column_labels = ['timestamp', 'hour', 'day', 'week','month', 'year', 'weekday']
     time_df = pd.DataFrame(dict(zip(column_labels, time_data)))
-    df['start_time'] = t
-    df.head()
+    # df['start_time'] = t
+    #df.head()
     for i, row in time_df.iterrows():
         cur.execute(time_table_insert, list(row))
 
@@ -68,7 +72,8 @@ def process_log_file(cur, filepath):
             songid, artistid = None, None
 
         # insert songplay record
-        songplay_data = (row.start_time,row.userId,row.level,songid,artistid, row.sessionId,row.location,row.userAgent)
+        # songplay_data = (row.start_time, row.userId,row.level, songid,artistid,    row.sessionId,row.location,row.userAgent)
+        songplay_data = (pd.to_datetime(row.ts, unit="ms"), row.userId, row.level, songid, artistid, row.sessionId, row.location, row.userAgent)
         cur.execute(songplay_table_insert, songplay_data)
 
 

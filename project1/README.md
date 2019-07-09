@@ -53,6 +53,7 @@ The song data files contain information about specific songs. such as artist, du
 Data is stored on local disk and is in json format and is retrieved by walking a directory and putting into panda data frames
 
 ```python3 create_tables.py```
+
 ```python3 etl.py```
 
 are executed to create the tables and load the data
